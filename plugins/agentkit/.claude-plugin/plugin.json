@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "agentkit",
+  "displayName": "AgentKit",
+  "version": "0.1.0",
+  "description": "Backend, frontend and security testing agents for Python, Rust, Node.js and TypeScript repositories",
+  "author": {
+    "name": "Platform Engineering",
+    "email": "platform@bwiiw.com"
+  },
+  "license": "UNLICENSED",
+  "keywords": ["testing", "security", "pytest", "vitest", "playwright", "rust", "nextest"]
+}

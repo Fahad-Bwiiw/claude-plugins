@@ -1,0 +1,53 @@
+# Example .agentkit.yml for a mixed Python API + React frontend monorepo.
+#
+# This file is the third layer of agentkit's architecture: not policy (what a
+# good test is - see the testing-policy skill) and not mechanics (how pytest
+# vs vitest work - see the stack-* skills), but the actual, verified commands
+# for THIS repository. Every agentkit agent reads this file first and never
+# guesses a command that isn't backed by it or by detect-stack.mjs.
+#
+# Every command below should have been run once and confirmed to work before
+# being committed here - see the `init` skill for the generation procedure.
+# This example is illustrative; treat the specific commands as a template,
+# not something to copy verbatim into an unrelated repo.
+
+version: 1
+
+backend:
+  language: python
+  root: backend
+  test: uv run pytest
+  test_one: "uv run pytest {test_id}"
+  coverage: uv run pytest --cov=app --cov-report=term-missing --cov-branch
+  lint: uv run ruff check .
+  typecheck: uv run mypy app
+  fmt: uv run ruff format --check .
+  min_diff_coverage: 85
+
+frontend:
+  language: node
+  root: frontend
+  test: pnpm test
+  test_one: "pnpm vitest run {test_file}"
+  e2e: pnpm exec playwright test
+  lint: pnpm lint
+  typecheck: pnpm typecheck
+  fmt: pnpm fmt
+  min_diff_coverage: 80
+
+security:
+  sast: pnpm exec semgrep --config auto --error
+  deps: uv run pip-audit && pnpm audit --audit-level=high
+  secrets: gitleaks detect --no-git -v
+  iac: checkov -d infra/ --compact
+
+conventions:
+  test_paths:
+    - backend/tests/**
+    - frontend/src/**/*.test.tsx
+    - frontend/e2e/**/*.spec.ts
+  rules:
+    - "Backend integration tests require `docker compose -f docker-compose.test.yml up -d db` before running; the test suite will fail fast with a clear error if the DB isn't reachable."
+    - "Use backend/tests/factories.py for test fixtures - do not construct model instances inline in a test."
+    - "Frontend component tests must query via Testing Library role/label queries, not data-testid, except for elements with no accessible role (see the stack-node skill)."
+    - "Playwright e2e specs live under frontend/e2e/ and run against a locally built preview server (pnpm build && pnpm preview), not the dev server."

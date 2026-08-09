@@ -1,0 +1,78 @@
+# AgentKit security review - ADVISORY ONLY.
+#
+# Do not add this workflow as a required status check on any branch
+# protection rule. Reasons:
+#
+#   1. LLM output is not reproducible. The same diff can produce a
+#      different agent report on different runs. If this check is required
+#      for merge, a re-run with no code change can flip the merge decision
+#      from blocked to green (or the reverse) for reasons that have nothing
+#      to do with the code.
+#   2. Once a check can be required-and-re-run, people learn the workaround:
+#      re-run until it's green, rather than read what it actually said.
+#      That trains the team to treat the check as noise, which defeats its
+#      purpose faster than not having it at all.
+#
+# Deterministic scanners (SAST/deps/secrets/IaC - see .agentkit.yml's
+# `security` section, or a dedicated scanning workflow) are what should
+# gate merges, because their output is reproducible: the same commit gives
+# the same result every time. This workflow's job is narrower and different
+# - triage the diff with judgment a deterministic scanner doesn't have, and
+# leave a comment a human reads before merging. It has no ability to block
+# anything, by design.
+
+name: AgentKit Security Review (Advisory)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: agentkit-security-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          plugin_marketplaces: "https://github.com/Fahad-Bwiiw/claude-plugins.git"
+          plugins: "agentkit@bwiiw-agents"
+          prompt: |
+            Delegate to the @agentkit:security-auditor subagent to audit the
+            diff between base commit ${{ github.event.pull_request.base.sha }}
+            and head commit ${{ github.event.pull_request.head.sha }}.
+
+            This review is advisory only - it does not gate the merge, and
+            you have no ability to change any check status. Your only job
+            is to get the subagent's report onto the PR as a comment.
+
+            After the subagent returns its report, post its Summary and
+            Findings sections as a single PR comment, prefixed with one line
+            stating this is an automated, non-blocking review:
+
+              gh pr comment ${{ github.event.pull_request.number }} --body-file -
+
+            If a comment from this workflow already exists on the PR
+            (search for the "automated, non-blocking review" prefix with
+            `gh pr view --json comments`), edit it instead of posting a new
+            one:
+
+              gh pr comment ${{ github.event.pull_request.number }} --edit-last --body-file -
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*)"
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "bwiiw-agents",
+  "description": "Internal Claude Code plugins for engineering",
+  "owner": {
+    "name": "Platform Engineering",
+    "email": "platform@bwiiw.com"
+  },
+  "plugins": [
+    {
+      "name": "agentkit",
+      "source": "./plugins/agentkit",
+      "description": "Backend, frontend and security testing agents for Python, Rust, Node.js and TypeScript repositories",
+      "category": "testing"
+    }
+  ]
+}
